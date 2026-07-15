@@ -18,6 +18,9 @@ from pathlib import Path
 USERNAME = os.getenv("X_USERNAME", "thsottiaux").lstrip("@")
 DEFAULT_FEEDS = (
     f"https://syndication.twitter.com/srv/timeline-profile/screen-name/{USERNAME}",
+    f"https://nitter.privacyredirect.com/{USERNAME}/rss",
+    f"https://lightbrd.com/{USERNAME}/rss",
+    f"https://nitter.tiekoetter.com/{USERNAME}/rss",
     f"https://xcancel.com/{USERNAME}/rss",
     f"https://nitter.poast.org/{USERNAME}/rss",
     f"https://rsshub.app/twitter/user/{USERNAME}",
