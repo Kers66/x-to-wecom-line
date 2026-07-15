@@ -17,6 +17,7 @@ from pathlib import Path
 
 USERNAME = os.getenv("X_USERNAME", "thsottiaux").lstrip("@")
 DEFAULT_FEEDS = (
+    f"https://syndication.twitter.com/srv/timeline-profile/screen-name/{USERNAME}",
     f"https://xcancel.com/{USERNAME}/rss",
     f"https://nitter.poast.org/{USERNAME}/rss",
     f"https://rsshub.app/twitter/user/{USERNAME}",
@@ -25,6 +26,7 @@ STATE_PATH = Path(os.getenv("STATE_PATH", "state/seen.json"))
 USER_AGENT = "Feedly/1.0 (+https://feedly.com/fetcher.html)"
 ID_RE = re.compile(r"/status/(\d+)")
 TAG_RE = re.compile(r"<[^>]+>")
+NEXT_DATA_RE = re.compile(r'__NEXT_DATA__[^>]*>(.*?)</script>', re.DOTALL)
 
 
 @dataclass(frozen=True)
@@ -96,11 +98,31 @@ def parse_feed(data: bytes) -> list[Post]:
     return posts
 
 
+def parse_syndication(data: bytes) -> list[Post]:
+    match = NEXT_DATA_RE.search(data.decode("utf-8", errors="replace"))
+    if not match:
+        return []
+    payload = json.loads(match.group(1))
+    entries = payload["props"]["pageProps"]["timeline"]["entries"]
+    posts: list[Post] = []
+    for entry in entries:
+        if entry.get("type") != "tweet":
+            continue
+        tweet = entry.get("content", {}).get("tweet", {})
+        post_id = str(tweet.get("id_str", ""))
+        if not post_id.isdigit():
+            continue
+        text = clean_text(str(tweet.get("full_text") or tweet.get("text") or ""))
+        posts.append(Post(post_id, text, f"https://x.com/{USERNAME}/status/{post_id}"))
+    return posts
+
+
 def get_posts() -> tuple[list[Post], str]:
     errors: list[str] = []
     for url in feed_urls():
         try:
-            posts = parse_feed(fetch(url))
+            data = fetch(url)
+            posts = parse_syndication(data) if "syndication.twitter.com" in url else parse_feed(data)
             if posts:
                 return posts, url
             errors.append(f"{url}: 没有找到帖子")
