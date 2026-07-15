@@ -62,6 +62,9 @@ def child_text(element: ET.Element, names: tuple[str, ...]) -> str:
 
 
 def parse_feed(data: bytes) -> list[Post]:
+    data = data.lstrip()
+    if data.startswith(b"\xef\xbb\xbf"):
+        data = data[3:].lstrip()
     root = ET.fromstring(data)
     posts: list[Post] = []
     for item in root.iter():
