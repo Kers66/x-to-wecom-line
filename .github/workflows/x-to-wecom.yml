@@ -1,0 +1,40 @@
+name: X to WeCom
+
+on:
+  schedule:
+    # GitHub 使用 UTC；每 15 分钟检查一次，并避开整点拥堵。
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: x-to-wecom
+  cancel-in-progress: false
+
+jobs:
+  forward:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Check for new posts
+        env:
+          WECOM_WEBHOOK: ${{ secrets.WECOM_WEBHOOK }}
+          X_USERNAME: thsottiaux
+          FEED_URLS: ${{ secrets.FEED_URLS }}
+        run: python x_to_wecom.py
+      - name: Save deduplication state
+        run: |
+          if [ -z "$(git status --porcelain -- state/seen.json)" ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state/seen.json
+          git commit -m "chore: update X post state"
+          git push
