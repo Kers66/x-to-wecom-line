@@ -22,7 +22,7 @@ DEFAULT_FEEDS = (
     f"https://rsshub.app/twitter/user/{USERNAME}",
 )
 STATE_PATH = Path(os.getenv("STATE_PATH", "state/seen.json"))
-USER_AGENT = "Mozilla/5.0 (compatible; x-to-wecom/1.0)"
+USER_AGENT = "Feedly/1.0 (+https://feedly.com/fetcher.html)"
 ID_RE = re.compile(r"/status/(\d+)")
 TAG_RE = re.compile(r"<[^>]+>")
 
@@ -42,7 +42,13 @@ def feed_urls() -> list[str]:
 
 
 def fetch(url: str) -> bytes:
-    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    request = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": USER_AGENT,
+            "Accept": "application/rss+xml, application/xml, text/xml",
+        },
+    )
     with urllib.request.urlopen(request, timeout=25) as response:
         return response.read()
 
